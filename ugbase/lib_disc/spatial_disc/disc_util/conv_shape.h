@@ -770,123 +770,123 @@ template <int TDim>
 class ConvectionShapesSkewedUpwind
 	: public IConvectionShapes<TDim>
 {
-	public:
+public:
 	///	Base class
-		typedef IConvectionShapes<TDim> base_type;
+	typedef IConvectionShapes<TDim> base_type;
 
 	///	This class
-		typedef ConvectionShapesSkewedUpwind<TDim> this_type;
+	typedef ConvectionShapesSkewedUpwind<TDim> this_type;
 
 	///	Dimension
-		static const int dim = TDim;
+	static const int dim = TDim;
 
-	protected:
+protected:
 	//	explicitly forward some function
-		using base_type::set_non_zero_deriv_diffusion_flag;
-		using base_type::conv_shape;
-		using base_type::D_vel;
-		using base_type::conv_shape_diffusion;
-		using base_type::non_zero_deriv_diffusion;
-		using base_type::register_update_func;
+	using base_type::conv_shape;
+	using base_type::conv_shape_diffusion;
+	using base_type::D_vel;
+	using base_type::non_zero_deriv_diffusion;
+	using base_type::register_update_func;
+	using base_type::set_non_zero_deriv_diffusion_flag;
 
-	public:
+public:
 	///	constructor
-		ConvectionShapesSkewedUpwind()
-		{
+	ConvectionShapesSkewedUpwind()
+	{
 		//	the shapes do not depend on the DiffDisp. Thus, we can set the
 		//	derivative to be always zero w.r.t. the DiffDisp for all shapes
-			set_non_zero_deriv_diffusion_flag(false);
+		set_non_zero_deriv_diffusion_flag(false);
 
 		//	register evaluation function
-			boost::mpl::for_each<typename domain_traits<dim>::AllElemList>(RegisterElemFunc(this));
-			boost::mpl::for_each< boost::mpl::range_c<int, 1, dim+1> >(RegisterRefDimFunc(this));
-		}
+		boost::mpl::for_each<typename domain_traits<dim>::AllElemList>(RegisterElemFunc(this));
+		boost::mpl::for_each<boost::mpl::range_c<int, 1, dim + 1>>(RegisterRefDimFunc(this));
+	}
 
 	///	update of values for FV geometry
-		template <typename TFVGeom>
-		bool update(const TFVGeom* geo,
-					const MathVector<dim>* Velocity,
-					const MathMatrix<dim, dim>* DiffDisp,
-		            bool computeDeriv);
+	template <typename TFVGeom>
+	bool update(const TFVGeom *geo,
+				const MathVector<dim> *Velocity,
+				const MathMatrix<dim, dim> *DiffDisp,
+				bool computeDeriv);
 
-	private:
-		
+private:
 	///	functor for registering the shapes for the element-templated FV geometries
-		struct RegisterElemFunc
+	struct RegisterElemFunc
+	{
+		this_type *m_pThis;
+		RegisterElemFunc(this_type *pThis) : m_pThis(pThis) {}
+		template <typename TElem>
+		void operator()(TElem &)
 		{
-			this_type* m_pThis;
-			RegisterElemFunc(this_type * pThis) : m_pThis(pThis) {}
-			template<typename TElem> void operator() (TElem &)
-			{
-				m_pThis->template register_func_for_elem_fvgeom< TElem, FV1Geometry<TElem, dim> >();
-				//m_pThis->template register_func_for_elem_fvgeom< TElem, FV1CondensedGeometry<TElem, dim> >();
-				//m_pThis->template register_func_for_elem_fvgeom< TElem, HFV1Geometry<TElem, dim> >();
-			}
-		};
-	
-	/// registers the update function for an element type and a FV geometry
-		template <typename TElem, typename TFVGeom>
-		void register_func_for_elem_fvgeom()
-		{
-			typedef bool (this_type::*TFunc) (const TFVGeom*, const MathVector<dim>*, const MathMatrix<dim, dim>*, bool);
-			base_type::template register_update_func<TFVGeom, TFunc>(&this_type::template update<TFVGeom>);
+			m_pThis->template register_func_for_elem_fvgeom<TElem, FV1Geometry<TElem, dim>>();
+			//m_pThis->template register_func_for_elem_fvgeom< TElem, FV1CondensedGeometry<TElem, dim> >();
+			//m_pThis->template register_func_for_elem_fvgeom< TElem, HFV1Geometry<TElem, dim> >();
 		}
-		
+	};
+
+	/// registers the update function for an element type and a FV geometry
+	template <typename TElem, typename TFVGeom>
+	void register_func_for_elem_fvgeom()
+	{
+		typedef bool (this_type::*TFunc)(const TFVGeom *, const MathVector<dim> *, const MathMatrix<dim, dim> *, bool);
+		base_type::template register_update_func<TFVGeom, TFunc>(&this_type::template update<TFVGeom>);
+	}
+
 	///	functor for registering the shapes for the reference-dimension-templated FV geometries
-		struct RegisterRefDimFunc
-		{
-			this_type* m_pThis;
-			RegisterRefDimFunc(this_type * pThis) : m_pThis(pThis) {}
-			template<typename TRefDim> void operator() (TRefDim &) {m_pThis->register_func_for_refDim<TRefDim::value> ();}
-		};
+	struct RegisterRefDimFunc
+	{
+		this_type *m_pThis;
+		RegisterRefDimFunc(this_type *pThis) : m_pThis(pThis) {}
+		template <typename TRefDim>
+		void operator()(TRefDim &) { m_pThis->register_func_for_refDim<TRefDim::value>(); }
+	};
 
 	/// registers the update function for a reference dimension
-		template <int refDim>
-		void register_func_for_refDim()
-		{
-			//typedef DimFV1Geometry<refDim, dim> TGeom;
-			//typedef bool (this_type::*TFunc) (const TGeom*, const MathVector<dim>*, const MathMatrix<dim, dim>*, bool);
-			//base_type::template register_update_func<TGeom, TFunc>(&this_type::template update<TGeom>);
-		}
+	template <int refDim>
+	void register_func_for_refDim()
+	{
+		//typedef DimFV1Geometry<refDim, dim> TGeom;
+		//typedef bool (this_type::*TFunc) (const TGeom*, const MathVector<dim>*, const MathMatrix<dim, dim>*, bool);
+		//base_type::template register_update_func<TGeom, TFunc>(&this_type::template update<TGeom>);
+	}
 };
 
 /// computes the closest node to a elem side ray intersection
 template <typename TRefElem, int TWorldDim>
-void GetNodeNextToCut(size_t& coOut,
-                      const MathVector<TWorldDim>& IP,
-                      const MathVector<TWorldDim>& IPVel,
-                      const MathVector<TWorldDim>* vCornerCoords)
+void GetNodeNextToCut(size_t &coOut,
+					  const MathVector<TWorldDim> &IP,
+					  const MathVector<TWorldDim> &IPVel,
+					  const MathVector<TWorldDim> *vCornerCoords)
 {
-//	help variables
+	//	help variables
 	size_t side = 0;
 	MathVector<TWorldDim> globalIntersection;
 	MathVector<TRefElem::dim> localIntersection;
 
-//	compute intersection of ray in direction of ip velocity with elem side
-//	we search the ray only in upwind direction
-	if(!ElementSideRayIntersection<TRefElem, TWorldDim>
-		(	side, globalIntersection, localIntersection,
-			IP, IPVel, false /* i.e. search upwind */, vCornerCoords))
+	//	compute intersection of ray in direction of ip velocity with elem side
+	//	we search the ray only in upwind direction
+	if (!ElementSideRayIntersection<TRefElem, TWorldDim>(side, globalIntersection, localIntersection,
+														 IP, IPVel, false /* i.e. search upwind */, vCornerCoords))
 		UG_THROW("GetNodeNextToCut: Cannot find cut side.");
 
-//	get reference element
-	static const TRefElem& rRefElem = Provider<TRefElem>::get();
+	//	get reference element
+	static const TRefElem &rRefElem = Provider<TRefElem>::get();
 	const int dim = TRefElem::dim;
 
-// 	reset minimum
+	// 	reset minimum
 	number min = std::numeric_limits<number>::max();
 
-// 	loop corners of side
-	for(size_t i = 0; i < rRefElem.num(dim-1, side, 0); ++i)
+	// 	loop corners of side
+	for (size_t i = 0; i < rRefElem.num(dim - 1, side, 0); ++i)
 	{
-	// 	get corner
-		const size_t co = rRefElem.id(dim-1, side, 0, i);
+		// 	get corner
+		const size_t co = rRefElem.id(dim - 1, side, 0, i);
 
-	// 	Compute Distance to intersection
+		// 	Compute Distance to intersection
 		number dist = VecDistanceSq(globalIntersection, vCornerCoords[co]);
 
-	// 	if distance is smaller, choose this node
-		if(dist < min)
+		// 	if distance is smaller, choose this node
+		if (dist < min)
 		{
 			min = dist;
 			coOut = co;
